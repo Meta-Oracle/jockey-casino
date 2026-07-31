@@ -1,33 +1,39 @@
 # Jockey Casino
 
-SVG-animated Solana racing utility site for **$JOCKEY**.
+SVG-animated Solana racing utility for **$JOCKEY** with live PvP betting.
 
-**Contract address:** `7S7c3aq7e8j9srBHWtrNuhhVqfiFK881EhMcL2Vfpump`
+**Mint / CA:** `7S7c3aq7e8j9srBHWtrNuhhVqfiFK881EhMcL2Vfpump`
 
-## Features
+## Economy
 
-- Full-bleed night-track hero with animated SVG stadium, rails, and galloping horse
-- Personal stable: breeds, coats, racing silks, mane styles
-- Stat upgrades (speed, stamina, luck, grit) and chip-based races
-- Progress saved in `localStorage`
-- Vercel-ready Next.js App Router build
+| Action | Token flow |
+| --- | --- |
+| Live upgrades | 100% → your treasury |
+| Solo race entry | 100% → your treasury |
+| PvP buy-in (both players) | Stakes → treasury; winner paid pot minus house cut; **house cut stays in treasury** |
 
-## Local development
+## Setup (required for live play)
+
+1. Copy `.env.example` → `.env.local`
+2. Set **`NEXT_PUBLIC_TREASURY_WALLET`** to your Solana address (receives all spends)
+3. Set **`TREASURY_PRIVATE_KEY`** (same wallet, base58 or JSON array) so the server can auto-pay PvP winners
+4. Recommended: Helius/QuickNode RPC + Upstash Redis for Vercel lobbies
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+## Vercel
 
-## Deploy on Vercel
+1. Import the GitHub repo
+2. Add the same env vars in Project → Settings → Environment Variables
+3. Deploy
 
-1. Push this repo to GitHub
-2. Import the project in [Vercel](https://vercel.com/new)
-3. Framework preset: **Next.js** (or use included `vercel.json`)
-4. Deploy
+Without `TREASURY_PRIVATE_KEY`, stakes still accumulate in your treasury; winner payouts must be sent manually (match UI shows the winner).
 
-```bash
-npm run build
-```
+## Security
+
+- Never commit private keys
+- Prefer a dedicated hot treasury with limited balance for payouts
+- Upstash Redis is recommended in production so PvP match state is shared across serverless instances

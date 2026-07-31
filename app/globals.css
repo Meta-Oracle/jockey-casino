@@ -380,18 +380,19 @@ code {
 
 .preview-stage {
   position: relative;
-  min-height: 260px;
+  min-height: 300px;
   display: grid;
   place-items: center;
   background:
-    linear-gradient(180deg, rgba(13, 107, 76, 0.15), transparent 40%),
-    radial-gradient(ellipse at 50% 85%, rgba(0, 0, 0, 0.45), transparent 55%),
+    radial-gradient(ellipse at 50% 0%, rgba(240, 215, 140, 0.08), transparent 45%),
+    linear-gradient(180deg, rgba(13, 107, 76, 0.2), transparent 42%),
+    radial-gradient(ellipse at 50% 88%, rgba(0, 0, 0, 0.5), transparent 58%),
     repeating-linear-gradient(
       90deg,
       transparent,
-      transparent 48px,
-      rgba(232, 184, 74, 0.04) 48px,
-      rgba(232, 184, 74, 0.04) 49px
+      transparent 56px,
+      rgba(232, 184, 74, 0.045) 56px,
+      rgba(232, 184, 74, 0.045) 57px
     );
   border-bottom: 1px solid var(--line);
   overflow: hidden;
@@ -615,109 +616,317 @@ legend {
   max-width: 48rem;
 }
 
+/* ——— Wallet / PvP economy ——— */
+.nav-links {
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.wallet-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.wallet-bal {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--brass);
+  font-size: 0.95rem;
+}
+
+.wallet-warn {
+  font-size: 0.75rem;
+  color: #e07a5f;
+}
+
+.wallet-treasury {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--turf);
+  border: 1px solid rgba(13, 107, 76, 0.5);
+  padding: 0.2rem 0.45rem;
+}
+
+.wallet-adapter-button {
+  background: var(--brass) !important;
+  color: #1a1208 !important;
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  border-radius: 0 !important;
+  height: 2.25rem !important;
+  line-height: 2.25rem !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background: rgba(7, 16, 24, 0.85) !important;
+}
+
+.wallet-adapter-modal {
+  background: var(--ink-2) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 0 !important;
+}
+
+.mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+}
+
+.fee-note,
+.store-note,
+.muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.center {
+  text-align: center;
+}
+
+.economy-banner {
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(224, 122, 95, 0.45);
+  color: var(--mist);
+  background: rgba(224, 122, 95, 0.08);
+  margin: 0 auto 2rem;
+  max-width: 1200px;
+}
+
+.race-result.error {
+  color: #e07a5f;
+}
+
+.inline-ca {
+  color: var(--brass);
+}
+
+.pvp {
+  padding: 4rem 1.5rem 5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  border-top: 1px solid var(--line);
+}
+
+.pvp-layout {
+  display: grid;
+  gap: 2rem;
+}
+
+.pvp-controls {
+  display: grid;
+  gap: 1.1rem;
+  align-content: start;
+}
+
+.lobby-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.lobby-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: space-between;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.pvp-stage {
+  min-height: 280px;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.pvp-horses {
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+}
+
+.pvp-horses .vs {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: 0.12em;
+  color: var(--brass);
+  text-align: center;
+}
+
+.pvp-actions {
+  margin-top: 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.settle-box {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.settle-box a {
+  color: var(--brass);
+  border-bottom: 1px solid var(--brass);
+}
+
+@media (min-width: 900px) {
+  .pvp-layout {
+    grid-template-columns: 0.9fr 1.1fr;
+  }
+
+  .pvp-horses {
+    grid-template-columns: 1fr auto 1fr;
+  }
+}
+
 /* ——— SVG animations ——— */
 .horse-svg .horse-body-group {
-  transform-origin: 175px 160px;
-  animation: idle-bob 2.4s ease-in-out infinite;
+  transform-origin: 230px 200px;
+  animation: idle-bob 2.8s ease-in-out infinite;
 }
 
 .horse-svg.is-racing .horse-body-group {
-  animation: gallop-bob 0.28s linear infinite;
+  animation: gallop-bob 0.32s ease-in-out infinite;
 }
 
 .horse-svg .leg {
-  transform-origin: top center;
+  transform-box: view-box;
 }
 
-.horse-svg.is-racing .fore-front {
-  animation: leg-fore 0.28s linear infinite;
+.horse-svg.is-racing .fore-near {
+  animation: leg-fore-near 0.32s ease-in-out infinite;
 }
 
-.horse-svg.is-racing .fore-back {
-  animation: leg-fore 0.28s linear infinite reverse;
-  animation-delay: -0.14s;
+.horse-svg.is-racing .fore-far {
+  animation: leg-fore-far 0.32s ease-in-out infinite;
+  animation-delay: -0.16s;
 }
 
-.horse-svg.is-racing .hind-front {
-  animation: leg-hind 0.28s linear infinite;
+.horse-svg.is-racing .hind-near {
+  animation: leg-hind-near 0.32s ease-in-out infinite;
 }
 
-.horse-svg.is-racing .hind-back {
-  animation: leg-hind 0.28s linear infinite reverse;
-  animation-delay: -0.14s;
+.horse-svg.is-racing .hind-far {
+  animation: leg-hind-far 0.32s ease-in-out infinite;
+  animation-delay: -0.16s;
 }
 
 .horse-svg .mane,
 .horse-svg .tail {
-  transform-origin: top left;
+  transform-box: view-box;
 }
 
 .horse-svg.is-racing .mane {
-  animation: mane-whip 0.35s ease-in-out infinite;
+  animation: mane-whip 0.38s ease-in-out infinite;
+  transform-origin: 130px 80px;
 }
 
 .horse-svg.is-racing .tail {
-  animation: tail-whip 0.4s ease-in-out infinite;
+  animation: tail-whip 0.42s ease-in-out infinite;
 }
 
-.horse-svg .ear {
-  transform-origin: bottom center;
-  animation: ear-flick 3.5s ease-in-out infinite;
+.horse-svg .ear-near {
+  transform-origin: 138px 64px;
+  animation: ear-flick 4s ease-in-out infinite;
+}
+
+.horse-svg .horse-head {
+  animation: head-nod 2.8s ease-in-out infinite;
+}
+
+.horse-svg.is-racing .horse-head {
+  animation: head-gallop 0.32s ease-in-out infinite;
 }
 
 .horse-svg .horse-shadow {
   transform-origin: center;
-  animation: shadow-pulse 2.4s ease-in-out infinite;
+  animation: shadow-pulse 2.8s ease-in-out infinite;
 }
 
 .horse-svg.is-racing .horse-shadow {
-  animation: shadow-race 0.28s linear infinite;
+  animation: shadow-race 0.32s ease-in-out infinite;
 }
 
 .horse-svg .dust-p {
-  animation: dust-drift 0.6s linear infinite;
+  animation: dust-drift 0.7s linear infinite;
 }
 
 .horse-svg .dust-p.d2 {
-  animation-delay: 0.15s;
+  animation-delay: 0.18s;
 }
 
 .horse-svg .dust-p.d3 {
-  animation-delay: 0.3s;
+  animation-delay: 0.36s;
 }
 
 .stadium-lights .light-bulb {
-  animation: light-flicker 4s ease-in-out infinite;
+  animation: light-flicker 4.5s ease-in-out infinite;
 }
 
-.stadium-lights g:nth-child(2) .light-bulb {
-  animation-delay: 0.4s;
+.stadium-lights .light-beam {
+  animation: beam-pulse 5s ease-in-out infinite;
 }
-.stadium-lights g:nth-child(3) .light-bulb {
-  animation-delay: 0.9s;
+
+.stadium-lights .beam-1 {
+  animation-delay: 0.7s;
 }
-.stadium-lights g:nth-child(4) .light-bulb {
-  animation-delay: 1.3s;
+.stadium-lights .beam-2 {
+  animation-delay: 1.4s;
 }
-.stadium-lights g:nth-child(5) .light-bulb {
-  animation-delay: 1.8s;
+.stadium-lights .beam-3 {
+  animation-delay: 2.1s;
+}
+
+.stand-window {
+  animation: window-glow 3.5s ease-in-out infinite;
+}
+
+.tote-glow rect:nth-child(odd) {
+  animation: tote-blink 2.4s ease-in-out infinite;
+}
+.tote-glow rect:nth-child(even) {
+  animation: tote-blink 2.8s ease-in-out infinite reverse;
+}
+
+.stars .star {
+  animation: star-twinkle 3.5s ease-in-out infinite;
+}
+.stars .s2 {
+  animation-delay: 1.1s;
+}
+.stars .s3 {
+  animation-delay: 2.2s;
 }
 
 .mist-band {
-  animation: mist-drift 18s linear infinite;
+  animation: mist-drift 22s linear infinite;
 }
 
 .sil-1 {
-  animation: sil-run 14s linear infinite;
+  animation: sil-run 16s linear infinite;
 }
 .sil-2 {
-  animation: sil-run 11s linear infinite;
-  animation-delay: -4s;
+  animation: sil-run 12s linear infinite;
+  animation-delay: -5s;
 }
 .sil-3 {
-  animation: sil-run 16s linear infinite reverse;
+  animation: sil-run 18s linear infinite reverse;
 }
 
+.finish-post {
+  animation: post-shimmer 6s ease-in-out infinite;
+}
 /* ——— Keyframes ——— */
 @keyframes rise-in {
   from {
@@ -768,51 +977,75 @@ legend {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-4px);
   }
 }
 
 @keyframes gallop-bob {
   0%,
   100% {
-    transform: translateY(0) rotate(-1deg);
+    transform: translateY(0) rotate(-1.5deg);
   }
   50% {
-    transform: translateY(-6px) rotate(1deg);
+    transform: translateY(-8px) rotate(1.2deg);
   }
 }
 
-@keyframes leg-fore {
+@keyframes leg-fore-near {
   0% {
-    transform: rotate(18deg);
+    transform: rotate(22deg);
+  }
+  50% {
+    transform: rotate(-28deg);
+  }
+  100% {
+    transform: rotate(22deg);
+  }
+}
+
+@keyframes leg-fore-far {
+  0% {
+    transform: rotate(-20deg);
+  }
+  50% {
+    transform: rotate(24deg);
+  }
+  100% {
+    transform: rotate(-20deg);
+  }
+}
+
+@keyframes leg-hind-near {
+  0% {
+    transform: rotate(-18deg);
+  }
+  50% {
+    transform: rotate(26deg);
+  }
+  100% {
+    transform: rotate(-18deg);
+  }
+}
+
+@keyframes leg-hind-far {
+  0% {
+    transform: rotate(20deg);
   }
   50% {
     transform: rotate(-22deg);
   }
   100% {
-    transform: rotate(18deg);
-  }
-}
-
-@keyframes leg-hind {
-  0% {
-    transform: rotate(-16deg);
-  }
-  50% {
     transform: rotate(20deg);
-  }
-  100% {
-    transform: rotate(-16deg);
   }
 }
 
 @keyframes mane-whip {
   0%,
   100% {
-    transform: rotate(0deg);
+    transform: rotate(0deg) translateX(0);
   }
   50% {
-    transform: rotate(6deg);
+    transform: rotate(5deg) translateX(3px);
   }
 }
 
@@ -822,21 +1055,41 @@ legend {
     transform: rotate(0deg);
   }
   50% {
-    transform: rotate(-10deg);
+    transform: rotate(-12deg);
   }
 }
 
 @keyframes ear-flick {
   0%,
-  90%,
+  88%,
   100% {
     transform: rotate(0);
   }
-  93% {
-    transform: rotate(-12deg);
+  91% {
+    transform: rotate(-14deg);
   }
-  96% {
-    transform: rotate(8deg);
+  95% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes head-nod {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes head-gallop {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(2deg);
   }
 }
 
@@ -844,10 +1097,10 @@ legend {
   0%,
   100% {
     transform: scaleX(1);
-    opacity: 0.35;
+    opacity: 0.38;
   }
   50% {
-    transform: scaleX(0.92);
+    transform: scaleX(0.9);
     opacity: 0.28;
   }
 }
@@ -855,22 +1108,22 @@ legend {
 @keyframes shadow-race {
   0%,
   100% {
-    transform: scaleX(1.05);
-    opacity: 0.4;
+    transform: scaleX(1.08);
+    opacity: 0.42;
   }
   50% {
-    transform: scaleX(0.88);
-    opacity: 0.25;
+    transform: scaleX(0.82);
+    opacity: 0.22;
   }
 }
 
 @keyframes dust-drift {
   from {
-    transform: translate(0, 0);
-    opacity: 0.5;
+    transform: translate(0, 0) scale(1);
+    opacity: 0.55;
   }
   to {
-    transform: translate(30px, -4px);
+    transform: translate(42px, -8px) scale(1.4);
     opacity: 0;
   }
 }
@@ -888,12 +1141,52 @@ legend {
   }
 }
 
+@keyframes beam-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes window-glow {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes tote-blink {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes mist-drift {
   from {
     transform: translateX(0);
   }
   to {
-    transform: translateX(80px);
+    transform: translateX(90px);
   }
 }
 
@@ -902,7 +1195,18 @@ legend {
     transform: translateX(0);
   }
   to {
-    transform: translateX(220px);
+    transform: translateX(240px);
+  }
+}
+
+@keyframes post-shimmer {
+  0%,
+  100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.15);
   }
 }
 

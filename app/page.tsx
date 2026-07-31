@@ -5,8 +5,9 @@ import AnimatedHorse from "@/components/AnimatedHorse";
 import ContractBar from "@/components/ContractBar";
 import StableGame from "@/components/StableGame";
 import TrackHeroBackdrop from "@/components/TrackHeroBackdrop";
+import WalletBar from "@/components/WalletBar";
 import { DEFAULT_HORSE } from "@/lib/game";
-import { TOKEN } from "@/lib/token";
+import { ECONOMY, TOKEN, TREASURY_WALLET, economyReady } from "@/lib/token";
 
 export default function HomePage() {
   const heroHorse = useMemo(
@@ -31,9 +32,11 @@ export default function HomePage() {
         <div className="nav-links">
           <a href="#utility">Utility</a>
           <a href="#stable">Stable</a>
+          <a href="#pvp">PvP</a>
           <a href={TOKEN.dexUrl} target="_blank" rel="noreferrer">
             Trade
           </a>
+          <WalletBar />
         </div>
       </nav>
 
@@ -41,14 +44,15 @@ export default function HomePage() {
         <TrackHeroBackdrop />
         <div className="hero-content">
           <p className="brand-mark">JOCKEY</p>
-          <h1>Race the rail. Own the utility.</h1>
+          <h1>Live rails. Real token economy.</h1>
           <p className="lede">
-            SVG-animated Solana racing casino — breed custom mounts, upgrade
-            bloodlines, and ride {TOKEN.ticker} as the chip behind every purse.
+            PvP stakes, upgrades, and entries settle in {TOKEN.ticker}. Every
+            in-game spend routes on-chain to the treasury — the house cut stays
+            yours.
           </p>
           <div className="cta-row">
-            <a className="btn-primary" href="#stable">
-              Enter the Stable
+            <a className="btn-primary" href="#pvp">
+              Enter PvP Arena
             </a>
             <a
               className="btn-outline"
@@ -68,30 +72,41 @@ export default function HomePage() {
 
       <section className="utility" id="utility">
         <header className="section-head">
-          <h2>Token utility</h2>
+          <h2>On-chain utility</h2>
           <p>
-            {TOKEN.ticker} fuels the paddock — entry stakes, upgrades, and
-            finishing purses on Solana.
+            {TOKEN.ticker} is the only in-game currency for live play. Spends
+            hit the treasury ATA automatically.
           </p>
         </header>
         <ul className="utility-list">
           <li>
-            <strong>Race stakes</strong>
-            <span>Chip into animated heats; place/show/win purses recycle value.</span>
-          </li>
-          <li>
-            <strong>Bloodline upgrades</strong>
-            <span>Spend chips to push speed, stamina, luck, and grit.</span>
-          </li>
-          <li>
-            <strong>Personal silks</strong>
-            <span>Breeds, coats, manes, and jockey colors — your stable identity.</span>
-          </li>
-          <li>
-            <strong>On-chain presence</strong>
+            <strong>PvP buy-ins</strong>
             <span>
-              Verified mint on {TOKEN.chain}. Trade freely, play locally, keep
-              the CA close.
+              Both players transfer stake to treasury. Winner receives pot minus{" "}
+              {(ECONOMY.houseFeeBps / 100).toFixed(0)}% house fee.
+            </span>
+          </li>
+          <li>
+            <strong>Upgrade burns (to treasury)</strong>
+            <span>
+              Each bloodline bump costs{" "}
+              {ECONOMY.upgradeCost.toLocaleString()} {TOKEN.ticker} — 100%
+              routed to you.
+            </span>
+          </li>
+          <li>
+            <strong>Solo entries</strong>
+            <span>
+              Practice against the field for{" "}
+              {ECONOMY.soloEntryCost.toLocaleString()} {TOKEN.ticker} per gate.
+            </span>
+          </li>
+          <li>
+            <strong>Treasury sink</strong>
+            <span>
+              {economyReady()
+                ? `Live · ${TREASURY_WALLET.slice(0, 8)}…${TREASURY_WALLET.slice(-6)}`
+                : "Set NEXT_PUBLIC_TREASURY_WALLET before deploy"}
             </span>
           </li>
         </ul>
@@ -119,8 +134,8 @@ export default function HomePage() {
       <footer className="footer">
         <span className="nav-brand">JOCKEY</span>
         <p>
-          Entertainment utility demo. Not financial advice. DYOR. CA{" "}
-          <code>{TOKEN.ca}</code>
+          Live utility entertainment on Solana. Not financial advice. DYOR.
+          Gambling involves risk. CA <code>{TOKEN.ca}</code>
         </p>
       </footer>
     </main>
