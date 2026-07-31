@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getMatch, saveMatch } from "@/lib/pvp/store";
-import { resolvePvP } from "@/lib/pvp/resolve";
-import { payoutWinner, verifyTreasurySpend } from "@/lib/solana";
-import { winnerPayout } from "@/lib/token";
+import { hashSeed, simulateRace } from "@/lib/pvp/simulate";
+import { verifyTreasurySpend } from "@/lib/solana";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +19,10 @@ export async function POST(req: Request) {
   const match = await getMatch(body.matchId);
   if (!match) {
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
+  }
+
+  if (match.status === "racing" || match.status === "settled") {
+    return NextResponse.json({ match });
   }
 
   const role =
@@ -59,32 +62,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ match });
   }
 
-  match.status = "settling";
-  await saveMatch(match);
+  // Authoritative race from live horse builds (breed + upgrades + silks stats path)
+  const seed = hashSeed(
+    `${match.id}:${match.host.depositTx}:${match.guest.depositTx}`
+  );
+  const startedAt = Date.now();
+  const race = simulateRace(
+    match.host.horse,
+    match.guest.horse,
+    seed,
+    startedAt
+  );
 
-  const outcome = resolvePvP(match.host.horse, match.guest.horse);
-  const winnerWallet =
-    outcome.winner === "host" ? match.host.wallet : match.guest.wallet;
-  const payout = winnerPayout(match.stake);
-
-  match.hostScore = outcome.hostScore;
-  match.guestScore = outcome.guestScore;
-  match.winnerWallet = winnerWallet;
-
-  const pay = await payoutWinner({
-    winnerWallet,
-    humanAmount: payout,
-    memo: `jockey-payout:${match.id}`,
-  });
-
-  if (pay.ok) {
-    match.payoutTx = pay.signature;
-    match.payoutNote = `Winner paid ${payout} $JCKYCSNO (house cut retained in treasury)`;
-  } else {
-    match.payoutNote = `Winner: ${winnerWallet}. Payout pending — ${pay.reason}. Stakes + house cut already in treasury.`;
-  }
-
-  match.status = "settled";
+  match.race = race;
+  match.status = "racing";
+  match.winnerWallet =
+    race.winner === "host" ? match.host.wallet : match.guest.wallet;
+  match.hostScore = race.host.finishMs;
+  match.guestScore = race.guest.finishMs;
   await saveMatch(match);
 
   return NextResponse.json({ match });

@@ -755,7 +755,8 @@ legend {
   align-items: center;
 }
 
-.pvp-horses .vs {
+.pvp-horses .vs,
+.paddock .vs {
   font-family: var(--font-display);
   font-size: 2rem;
   letter-spacing: 0.12em;
@@ -780,13 +781,220 @@ legend {
   border-bottom: 1px solid var(--brass);
 }
 
+/* ——— Live race visualizer ——— */
+.race-viz {
+  margin: 0 auto 2.5rem;
+  max-width: 1200px;
+  padding: 0 1.5rem;
+}
+
+.race-viz-hud {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 0.75rem;
+}
+
+.race-stat-card {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.race-stat-card.right {
+  text-align: right;
+  justify-items: end;
+}
+
+.race-stat-card strong {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  font-size: 1.25rem;
+  color: var(--brass);
+}
+
+.race-stat-card span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.race-stat-card ul,
+.mini-stats {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+  color: var(--mist);
+}
+
+.race-viz-center {
+  min-height: 3.2rem;
+  display: grid;
+  place-items: center;
+}
+
+.race-countdown {
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 8vw, 4.5rem);
+  letter-spacing: 0.08em;
+  color: var(--brass);
+  animation: rise-in 0.35s var(--ease);
+}
+
+.race-phase-label {
+  font-family: var(--font-display);
+  letter-spacing: 0.28em;
+  color: var(--turf);
+  font-size: 1.1rem;
+}
+
+.race-phase-label.win {
+  color: var(--brass);
+  letter-spacing: 0.12em;
+  animation: rise-in 0.45s var(--ease);
+}
+
+.race-track-wrap {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  min-height: 280px;
+  background: #06281c;
+}
+
+.race-track-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.race-lanes {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  height: 280px;
+  width: 112%;
+  transition: transform 0.35s linear;
+  will-change: transform;
+}
+
+.race-lane {
+  position: relative;
+  overflow: visible;
+}
+
+.race-runner {
+  position: absolute;
+  top: 50%;
+  transform: translate(-10%, -55%);
+  transition: left 0.08s linear;
+  will-change: left;
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.45));
+}
+
+.runner-tag {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: var(--mist);
+  margin-top: -0.35rem;
+  padding-left: 0.4rem;
+  text-shadow: 0 2px 8px #000;
+}
+
+.runner-tag em {
+  font-style: normal;
+  color: var(--brass);
+}
+
+.race-progress-bars {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.rp-row {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  gap: 0.6rem;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.rp-bar {
+  height: 4px;
+  background: rgba(232, 184, 74, 0.12);
+  overflow: hidden;
+}
+
+.rp-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--turf), var(--brass));
+  transition: width 0.08s linear;
+}
+
+.paddock {
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+}
+
+.paddock-lane {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
 @media (min-width: 900px) {
   .pvp-layout {
     grid-template-columns: 0.9fr 1.1fr;
   }
 
-  .pvp-horses {
+  .pvp-horses,
+  .paddock {
     grid-template-columns: 1fr auto 1fr;
+  }
+
+  .paddock-lane {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .paddock-lane .mini-stats {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 760px) {
+  .race-viz-hud {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .race-stat-card.right {
+    text-align: center;
+    justify-items: center;
+  }
+
+  .race-lanes {
+    height: 240px;
+  }
+
+  .race-track-wrap {
+    min-height: 240px;
   }
 }
 

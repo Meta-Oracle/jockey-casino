@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMatch } from "@/lib/pvp/store";
+import { getMatchFresh } from "@/lib/pvp/settle";
 
 export const dynamic = "force-dynamic";
 
@@ -8,9 +8,12 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params;
-  const match = await getMatch(id);
+  const match = await getMatchFresh(id);
   if (!match) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  return NextResponse.json({ match });
+  return NextResponse.json({
+    match,
+    serverNow: Date.now(),
+  });
 }

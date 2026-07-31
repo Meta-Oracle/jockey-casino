@@ -1,9 +1,11 @@
 import type { HorseConfig } from "@/lib/game";
 import { ECONOMY } from "@/lib/token";
+import type { RacePlan } from "@/lib/pvp/simulate";
 
 export type MatchStatus =
   | "open"
   | "full"
+  | "racing"
   | "settling"
   | "settled"
   | "cancelled";
@@ -13,6 +15,7 @@ export interface PvpPlayer {
   horse: HorseConfig;
   depositTx?: string;
   paid: boolean;
+  ready?: boolean;
 }
 
 export interface PvpMatch {
@@ -23,11 +26,13 @@ export interface PvpMatch {
   status: MatchStatus;
   houseFeeBps: number;
   createdAt: number;
+  race?: RacePlan;
   winnerWallet?: string;
   hostScore?: number;
   guestScore?: number;
   payoutTx?: string;
   payoutNote?: string;
+  settledAt?: number;
 }
 
 type GlobalStore = {
@@ -73,7 +78,13 @@ const INDEX = "jockey:pvp:index";
 
 export async function saveMatch(match: PvpMatch): Promise<void> {
   if (redisConfigured()) {
-    await redisFetch(["SET", KEY(match.id), JSON.stringify(match), "EX", 86400]);
+    await redisFetch([
+      "SET",
+      KEY(match.id),
+      JSON.stringify(match),
+      "EX",
+      86400,
+    ]);
     await redisFetch(["SADD", INDEX, match.id]);
     return;
   }
@@ -96,14 +107,17 @@ export async function listOpenMatches(): Promise<PvpMatch[]> {
     const matches: PvpMatch[] = [];
     for (const id of ids) {
       const m = await getMatch(id);
-      if (m && (m.status === "open" || m.status === "full")) {
+      if (m && (m.status === "open" || m.status === "full" || m.status === "racing")) {
         matches.push(m);
       }
     }
     return matches.sort((a, b) => b.createdAt - a.createdAt);
   }
   return [...memoryMap().values()]
-    .filter((m) => m.status === "open" || m.status === "full")
+    .filter(
+      (m) =>
+        m.status === "open" || m.status === "full" || m.status === "racing"
+    )
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
@@ -129,13 +143,10 @@ export function createMatchDraft(params: {
       wallet: params.wallet,
       horse: params.horse,
       paid: false,
+      ready: true,
     },
     status: "open",
     houseFeeBps: ECONOMY.houseFeeBps,
     createdAt: Date.now(),
   };
-}
-
-export function publicMatch(match: PvpMatch) {
-  return match;
 }

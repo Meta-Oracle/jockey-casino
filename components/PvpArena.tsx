@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import AnimatedHorse from "@/components/AnimatedHorse";
+import RaceVisualizer, {
+  PaddockPreview,
+} from "@/components/RaceVisualizer";
 import { useSpendToTreasury, shortKey } from "@/components/WalletBar";
 import {
   ECONOMY,
@@ -28,6 +30,8 @@ export default function PvpArena({ horse }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [storeMode, setStoreMode] = useState<string>("memory");
+  const [serverSkewMs, setServerSkewMs] = useState(0);
+  const syncing = useRef(false);
 
   const wallet = publicKey?.toBase58();
 
@@ -47,21 +51,78 @@ export default function PvpArena({ horse }: Props) {
       cache: "no-store",
     });
     if (!res.ok) return;
-    const data = (await res.json()) as { match: PvpMatch };
+    const data = (await res.json()) as {
+      match: PvpMatch;
+      serverNow?: number;
+    };
+    if (typeof data.serverNow === "number") {
+      setServerSkewMs(data.serverNow - Date.now());
+    }
     setActive(data.match);
   }, [active?.id]);
 
+  // Lobby poll
   useEffect(() => {
     void refreshLobby();
-    const id = window.setInterval(() => void refreshLobby(), 4000);
+    const id = window.setInterval(() => void refreshLobby(), 3500);
     return () => window.clearInterval(id);
   }, [refreshLobby]);
 
+  // Match netcode — faster while racing
   useEffect(() => {
-    if (!active || active.status === "settled") return;
-    const id = window.setInterval(() => void refreshActive(), 2500);
+    if (!active) return;
+    if (active.status === "settled") return;
+    const ms =
+      active.status === "racing"
+        ? 500
+        : active.status === "full"
+          ? 1200
+          : 2000;
+    const id = window.setInterval(() => void refreshActive(), ms);
     return () => window.clearInterval(id);
   }, [active, refreshActive]);
+
+  // Sync latest horse build into the match (stats/upgrades/gear)
+  useEffect(() => {
+    if (!wallet || !active) return;
+    if (active.status !== "open" && active.status !== "full") return;
+    const isPlayer =
+      active.host.wallet === wallet || active.guest?.wallet === wallet;
+    if (!isPlayer) return;
+    const paid =
+      (active.host.wallet === wallet && active.host.paid) ||
+      (active.guest?.wallet === wallet && active.guest.paid);
+    if (paid) return;
+
+    const timer = window.setTimeout(() => {
+      if (syncing.current) return;
+      syncing.current = true;
+      void fetch("/api/pvp/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId: active.id, wallet, horse }),
+      })
+        .then(async (res) => {
+          if (!res.ok) return;
+          const data = (await res.json()) as { match: PvpMatch };
+          setActive(data.match);
+        })
+        .finally(() => {
+          syncing.current = false;
+        });
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    horse,
+    wallet,
+    active?.id,
+    active?.status,
+    active?.host.paid,
+    active?.guest?.paid,
+    active?.host.wallet,
+    active?.guest?.wallet,
+  ]);
 
   async function createMatch() {
     if (!wallet) return;
@@ -118,6 +179,13 @@ export default function PvpArena({ horse }: Props) {
     setBusy(true);
     setError(null);
     try {
+      // Final horse sync before paying
+      await fetch("/api/pvp/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId: active.id, wallet, horse }),
+      });
+
       const memo = `jockey-pvp:${active.id}:${role}`;
       const signature = await spend(active.stake, memo);
       const res = await fetch("/api/pvp/lock", {
@@ -140,6 +208,21 @@ export default function PvpArena({ horse }: Props) {
     }
   }
 
+  const onRaceFinished = useCallback(() => {
+    void fetch("/api/pvp/finish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matchId: active?.id }),
+    })
+      .then((r) => r.json())
+      .then((data: { match?: PvpMatch; serverNow?: number }) => {
+        if (data.match) setActive(data.match);
+        if (typeof data.serverNow === "number") {
+          setServerSkewMs(data.serverNow - Date.now());
+        }
+      });
+  }, [active?.id]);
+
   const myPaid =
     active &&
     wallet &&
@@ -154,20 +237,21 @@ export default function PvpArena({ horse }: Props) {
     (active.host.wallet === wallet || active.guest?.wallet === wallet) &&
     !myPaid;
 
+  const showVisualizer =
+    active &&
+    active.race &&
+    (active.status === "racing" ||
+      active.status === "settling" ||
+      active.status === "settled");
+
   return (
     <section className="pvp" id="pvp">
       <header className="section-head">
         <h2>Live PvP Arena</h2>
         <p>
-          Head-to-head stakes in {TOKEN.ticker}. Both buy-ins route to treasury{" "}
-          <code className="inline-ca">
-            {TREASURY_WALLET
-              ? `${TREASURY_WALLET.slice(0, 6)}…${TREASURY_WALLET.slice(-4)}`
-              : "(unset)"}
-          </code>
-          . Winner is paid the pot minus an{" "}
-          {(ECONOMY.houseFeeBps / 100).toFixed(1)}% house cut that stays with
-          you.
+          Enter the rail with your live build — breed, upgrades, and silks feed
+          the race sim. Horses run the track; {TOKEN.ticker} stakes settle on
+          finish.
         </p>
       </header>
 
@@ -177,6 +261,14 @@ export default function PvpArena({ horse }: Props) {
           optionally <code>TREASURY_PRIVATE_KEY</code> for automatic winner
           payouts. Redeploy on Vercel after setting env vars.
         </p>
+      )}
+
+      {showVisualizer && active && (
+        <RaceVisualizer
+          match={active}
+          serverSkewMs={serverSkewMs}
+          onFinished={onRaceFinished}
+        />
       )}
 
       <div className="pvp-layout">
@@ -196,7 +288,7 @@ export default function PvpArena({ horse }: Props) {
               ))}
             </div>
             <p className="fee-note">
-              Pot { (stake * 2).toLocaleString() } · House keeps{" "}
+              Pot {(stake * 2).toLocaleString()} · House keeps{" "}
               {houseCut(stake).toLocaleString()} · Winner{" "}
               {winnerPayout(stake).toLocaleString()}
             </p>
@@ -212,10 +304,11 @@ export default function PvpArena({ horse }: Props) {
           </button>
 
           <p className="store-note">
-            Lobby store: {storeMode}
+            Net: {storeMode}
             {storeMode === "memory"
-              ? " — add Upstash Redis on Vercel for multi-instance lobbies"
-              : ""}
+              ? " — Upstash Redis recommended for multi-instance Vercel"
+              : " · redis sync live"}
+            {active?.status === "racing" ? " · race poll 500ms" : ""}
           </p>
 
           <fieldset>
@@ -250,7 +343,7 @@ export default function PvpArena({ horse }: Props) {
                     className="btn-ghost small"
                     onClick={() => setActive(m)}
                   >
-                    Watch
+                    {m.status === "racing" ? "Watch live" : "Enter"}
                   </button>
                 </li>
               ))}
@@ -263,79 +356,78 @@ export default function PvpArena({ horse }: Props) {
         <div className="pvp-stage">
           {!active && (
             <p className="muted center">
-              Create or join a match to lock live {TOKEN.ticker} stakes.
+              Create or join — your stable build syncs into the arena before
+              stakes lock.
             </p>
           )}
+
+          {active && !showVisualizer && <PaddockPreview match={active} />}
+
           {active && (
-            <>
-              <div className="pvp-horses">
-                <div>
-                  <span className="eyebrow">Host</span>
-                  <AnimatedHorse horse={active.host.horse} size="md" racing={active.status === "settling"} />
-                  <p>
-                    {active.host.horse.name} · {shortKey(active.host.wallet)}
-                    {active.host.paid ? " · paid" : " · awaiting pay"}
+            <div className="pvp-actions">
+              {needOpponent && (
+                <p className="muted">
+                  Arena open — waiting on a challenger. Customize in Your Stable;
+                  builds sync live until you pay.
+                </p>
+              )}
+              {canLock && (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={busy}
+                  onClick={() => void lockStake()}
+                >
+                  Pay {active.stake.toLocaleString()} {TOKEN.ticker} · enter
+                  gate
+                </button>
+              )}
+              {myPaid && active.status === "full" && (
+                <p className="muted">
+                  Stake locked. Waiting for opponent payment to break…
+                </p>
+              )}
+              {active.status === "racing" && (
+                <p className="muted">Race live — horses running the rail.</p>
+              )}
+              {active.status === "settled" && (
+                <div className="settle-box">
+                  <p className="race-result">
+                    Winner{" "}
+                    {active.winnerWallet
+                      ? shortKey(active.winnerWallet)
+                      : "—"}
+                    {active.race
+                      ? ` · ${active.race.winner === "host" ? active.host.horse.name : active.guest?.horse.name}`
+                      : ""}
                   </p>
-                </div>
-                <div className="vs">VS</div>
-                <div>
-                  <span className="eyebrow">Challenger</span>
-                  {active.guest ? (
-                    <>
-                      <AnimatedHorse
-                        horse={active.guest.horse}
-                        size="md"
-                        racing={active.status === "settling"}
-                      />
-                      <p>
-                        {active.guest.horse.name} ·{" "}
-                        {shortKey(active.guest.wallet)}
-                        {active.guest.paid ? " · paid" : " · awaiting pay"}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="muted">Waiting for challenger…</p>
+                  {active.race && (
+                    <p className="muted">
+                      Clock: host {(active.race.host.finishMs / 1000).toFixed(2)}
+                      s · guest{" "}
+                      {(active.race.guest.finishMs / 1000).toFixed(2)}s · seed{" "}
+                      {active.race.seed}
+                    </p>
+                  )}
+                  <p className="muted">{active.payoutNote}</p>
+                  {active.payoutTx && (
+                    <a
+                      href={`https://solscan.io/tx/${active.payoutTx}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Payout tx
+                    </a>
                   )}
                 </div>
-              </div>
-
-              <div className="pvp-actions">
-                {needOpponent && (
-                  <p className="muted">Share the lobby — waiting on a joiner.</p>
-                )}
-                {canLock && (
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    disabled={busy}
-                    onClick={() => void lockStake()}
-                  >
-                    Pay {active.stake.toLocaleString()} {TOKEN.ticker} to
-                    treasury
-                  </button>
-                )}
-                {myPaid && active.status !== "settled" && (
-                  <p className="muted">Stake locked. Waiting on opponent / settle…</p>
-                )}
-                {active.status === "settled" && (
-                  <div className="settle-box">
-                    <p className="race-result">
-                      Winner {active.winnerWallet ? shortKey(active.winnerWallet) : "—"}
-                    </p>
-                    <p className="muted">{active.payoutNote}</p>
-                    {active.payoutTx && (
-                      <a
-                        href={`https://solscan.io/tx/${active.payoutTx}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Payout tx
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
+              )}
+              {TREASURY_WALLET && (
+                <p className="fee-note">
+                  Treasury {TREASURY_WALLET.slice(0, 6)}…
+                  {TREASURY_WALLET.slice(-4)}
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
