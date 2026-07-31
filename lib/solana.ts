@@ -37,7 +37,7 @@ export function mintPubkey(): PublicKey {
   return new PublicKey(TOKEN.mint);
 }
 
-/** Build a transfer of `humanAmount` JOCKEY → treasury, with memo tag. */
+/** Build a transfer of `humanAmount` $JCKYCSNO → treasury, with memo tag. */
 export async function buildTreasurySpendTx(params: {
   from: PublicKey;
   humanAmount: number;

@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${TOKEN.ticker} · Jockey Casino`,
     description:
-      "Live PvP horse racing casino. Real $JOCKEY economy — spends route to treasury.",
+      "Live PvP horse racing casino. Real $JCKYCSNO economy — spends route to treasury.",
   },
 };
 

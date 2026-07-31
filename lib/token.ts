@@ -1,7 +1,7 @@
 /** Solana mint = pump.fun CA */
 export const TOKEN = {
   name: "JOCKEY",
-  ticker: "$JOCKEY",
+  ticker: "$JCKYCSNO",
   ca: "7S7c3aq7e8j9srBHWtrNuhhVqfiFK881EhMcL2Vfpump",
   mint: "7S7c3aq7e8j9srBHWtrNuhhVqfiFK881EhMcL2Vfpump",
   chain: "Solana",
@@ -23,7 +23,7 @@ export const SOLANA_RPC =
   process.env.NEXT_PUBLIC_SOLANA_RPC?.trim() ||
   "https://api.mainnet-beta.solana.com";
 
-/** Human-unit JOCKEY amounts (UI). On-chain = amount * 10^decimals */
+/** Human-unit $JCKYCSNO amounts (UI). On-chain = amount * 10^decimals */
 export const ECONOMY = {
   /** 100% of upgrade spend → treasury */
   upgradeCost: 10_000,

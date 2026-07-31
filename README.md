@@ -1,6 +1,6 @@
 # Jockey Casino
 
-SVG-animated Solana racing utility for **$JOCKEY** with live PvP betting.
+SVG-animated Solana racing utility for **$JCKYCSNO** with live PvP betting.
 
 **Mint / CA:** `7S7c3aq7e8j9srBHWtrNuhhVqfiFK881EhMcL2Vfpump`
 

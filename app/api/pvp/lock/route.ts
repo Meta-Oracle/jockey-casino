@@ -79,7 +79,7 @@ export async function POST(req: Request) {
 
   if (pay.ok) {
     match.payoutTx = pay.signature;
-    match.payoutNote = `Winner paid ${payout} JOCKEY (house cut retained in treasury)`;
+    match.payoutNote = `Winner paid ${payout} $JCKYCSNO (house cut retained in treasury)`;
   } else {
     match.payoutNote = `Winner: ${winnerWallet}. Payout pending — ${pay.reason}. Stakes + house cut already in treasury.`;
   }
