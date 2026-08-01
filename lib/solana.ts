@@ -16,14 +16,31 @@ import {
 import { createMemoInstruction } from "@solana/spl-memo";
 import bs58 from "bs58";
 import {
-  SOLANA_RPC,
+  SOLANA_RPC_ENDPOINTS,
   TOKEN,
   TREASURY_WALLET,
   toAtomic,
 } from "@/lib/token";
 
-export function getConnection(): Connection {
-  return new Connection(SOLANA_RPC, "confirmed");
+let cachedRpcEndpoint: string | null = null;
+
+export async function getConnection(): Promise<Connection> {
+  if (cachedRpcEndpoint) {
+    return new Connection(cachedRpcEndpoint, "confirmed");
+  }
+
+  for (const endpoint of SOLANA_RPC_ENDPOINTS) {
+    const connection = new Connection(endpoint, "confirmed");
+    try {
+      await connection.getLatestBlockhash();
+      cachedRpcEndpoint = endpoint;
+      return connection;
+    } catch {
+      // Try the next endpoint if this RPC is unavailable or blocked.
+    }
+  }
+
+  return new Connection(SOLANA_RPC_ENDPOINTS[0] ?? "https://api.mainnet-beta.solana.com", "confirmed");
 }
 
 export function treasuryPubkey(): PublicKey {
@@ -43,7 +60,7 @@ export async function buildTreasurySpendTx(params: {
   humanAmount: number;
   memo: string;
 }): Promise<Transaction> {
-  const connection = getConnection();
+  const connection = await getConnection();
   const mint = mintPubkey();
   const treasury = treasuryPubkey();
   const amount = toAtomic(params.humanAmount);
@@ -142,7 +159,7 @@ export async function verifyTreasurySpend(params: {
   expectedHumanAmount: number;
   memoIncludes?: string;
 }): Promise<VerifiedSpend> {
-  const connection = getConnection();
+  const connection = await getConnection();
   const expected = toAtomic(params.expectedHumanAmount);
 
   const tx = await connection.getParsedTransaction(params.signature, {
@@ -248,7 +265,7 @@ export async function verifyTreasurySpend(params: {
 export async function getTokenBalance(
   owner: PublicKey
 ): Promise<number> {
-  const connection = getConnection();
+  const connection = await getConnection();
   const mint = mintPubkey();
   const ata = getAssociatedTokenAddressSync(mint, owner);
   try {
@@ -293,7 +310,7 @@ export async function payoutWinner(params: {
     };
   }
 
-  const connection = getConnection();
+  const connection = await getConnection();
   const mint = mintPubkey();
   const winner = new PublicKey(params.winnerWallet);
   const amount = toAtomic(params.humanAmount);

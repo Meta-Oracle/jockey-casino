@@ -19,9 +19,20 @@ export const SHORT_CA = `${TOKEN.ca.slice(0, 6)}…${TOKEN.ca.slice(-4)}`;
 export const TREASURY_WALLET =
   process.env.NEXT_PUBLIC_TREASURY_WALLET?.trim() || "";
 
-export const SOLANA_RPC =
-  process.env.NEXT_PUBLIC_SOLANA_RPC?.trim() ||
-  "https://api.mainnet-beta.solana.com";
+const DEFAULT_SOLANA_RPC_ENDPOINTS = [
+  "https://solana-rpc.publicnode.com",
+  "https://api.mainnet-beta.solana.com",
+] as const;
+
+export const SOLANA_RPC_ENDPOINTS = [
+  process.env.NEXT_PUBLIC_SOLANA_RPC?.trim(),
+  ...DEFAULT_SOLANA_RPC_ENDPOINTS,
+].filter(
+  (value, index, values): value is string =>
+    Boolean(value) && values.indexOf(value) === index
+);
+
+export const SOLANA_RPC = SOLANA_RPC_ENDPOINTS[0] ?? DEFAULT_SOLANA_RPC_ENDPOINTS[0];
 
 /** Human-unit $JCKYCSNO amounts (UI). On-chain = amount * 10^decimals */
 export const ECONOMY = {
