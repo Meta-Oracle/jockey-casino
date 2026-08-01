@@ -79,6 +79,21 @@ export async function buildTreasurySpendTx(params: {
   tx.feePayer = params.from;
 
   try {
+    await getAccount(connection, fromAta);
+  } catch {
+    tx.add(
+      createAssociatedTokenAccountInstruction(
+        params.from,
+        fromAta,
+        params.from,
+        mint,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      )
+    );
+  }
+
+  try {
     await getAccount(connection, toAta);
   } catch {
     tx.add(
@@ -143,6 +158,8 @@ export async function verifyTreasurySpend(params: {
   const treasury = TREASURY_WALLET;
   let transferred = BigInt(0);
   let fromOwner: string | null = null;
+  const feePayer =
+    tx.transaction.message.accountKeys[0]?.pubkey?.toString?.() ?? null;
 
   for (const ix of tx.transaction.message.instructions) {
     if (!("parsed" in ix) || !ix.parsed) continue;
@@ -200,14 +217,7 @@ export async function verifyTreasurySpend(params: {
     }
   }
 
-  if (
-    params.expectedFrom &&
-    fromOwner &&
-    fromOwner !== params.expectedFrom
-  ) {
-    // authority may be missing on some parses — also check fee payer
-    const feePayer = tx.transaction.message.accountKeys[0]?.pubkey?.toString?.()
-      ?? String(tx.transaction.message.accountKeys[0]);
+  if (params.expectedFrom && fromOwner && fromOwner !== params.expectedFrom) {
     if (feePayer !== params.expectedFrom && fromOwner !== params.expectedFrom) {
       return { ok: false, reason: "Spender wallet mismatch" };
     }

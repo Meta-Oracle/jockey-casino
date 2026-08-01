@@ -52,12 +52,13 @@ export default function RaceVisualizer({
     onFinished?.();
   }, [visual, onFinished]);
 
-  if (!plan || !match.guest || !visual) {
+  if (!plan || !visual) {
     return null;
   }
 
   const hostStats = plan.host.stats;
-  const guestStats = plan.guest.stats;
+  const secondaryParticipant = match.participants[1] ?? match.participants[0];
+  const guestStats = plan.guest?.stats ?? plan.runners[1]?.stats ?? secondaryParticipant?.horse ? getStats(secondaryParticipant.horse) : undefined;
   const countdownSec = Math.ceil(visual.countdownLeft / 1000);
 
   // Camera follows the leader slightly
@@ -90,19 +91,19 @@ export default function RaceVisualizer({
             <div className="race-phase-label win">
               {plan.winner === "host"
                 ? match.host.horse.name
-                : match.guest.horse.name}{" "}
+                : secondaryParticipant?.horse.name ?? "Runner"}{" "}
               WINS
             </div>
           )}
         </div>
         <div className="race-stat-card right">
-          <strong>{match.guest.horse.name}</strong>
-          <span>{shortKey(match.guest.wallet)}</span>
+          <strong>{secondaryParticipant?.horse.name ?? "Waiting"}</strong>
+          <span>{secondaryParticipant ? shortKey(secondaryParticipant.wallet) : "—"}</span>
           <ul>
-            <li>SPD {guestStats.speed}</li>
-            <li>STA {guestStats.stamina}</li>
-            <li>LCK {guestStats.luck}</li>
-            <li>GRT {guestStats.grit}</li>
+            <li>SPD {guestStats?.speed ?? 0}</li>
+            <li>STA {guestStats?.stamina ?? 0}</li>
+            <li>LCK {guestStats?.luck ?? 0}</li>
+            <li>GRT {guestStats?.grit ?? 0}</li>
           </ul>
         </div>
       </div>
@@ -185,58 +186,42 @@ export default function RaceVisualizer({
             transform: `translateX(-${camShift}%)`,
           }}
         >
-          <div className="race-lane">
-            <div
-              className="race-runner"
-              style={{
-                left: `calc(${visual.hostProgress * 88}% )`,
-              }}
-            >
-              <AnimatedHorse
-                horse={match.host.horse}
-                size="sm"
-                racing={visual.phase === "running"}
-              />
-              <span className="runner-tag">
-                {match.host.horse.name}
-                <em>{Math.round(visual.hostProgress * 100)}%</em>
-              </span>
-            </div>
-          </div>
-          <div className="race-lane">
-            <div
-              className="race-runner"
-              style={{
-                left: `calc(${visual.guestProgress * 88}% )`,
-              }}
-            >
-              <AnimatedHorse
-                horse={match.guest.horse}
-                size="sm"
-                racing={visual.phase === "running"}
-              />
-              <span className="runner-tag">
-                {match.guest.horse.name}
-                <em>{Math.round(visual.guestProgress * 100)}%</em>
-              </span>
-            </div>
-          </div>
+          {match.participants.slice(0, 4).map((player, index) => {
+            const progress = visual.runnerProgresses[index] ?? 0;
+            const label = player.horse.name || `Runner ${index + 1}`;
+            return (
+              <div className="race-lane" key={player.wallet}>
+                <div
+                  className="race-runner"
+                  style={{
+                    left: `calc(${progress * 88}% )`,
+                  }}
+                >
+                  <AnimatedHorse
+                    horse={player.horse}
+                    size="sm"
+                    racing={visual.phase === "running"}
+                  />
+                  <span className="runner-tag">
+                    {label}
+                    <em>{Math.round(progress * 100)}%</em>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       <div className="race-progress-bars">
-        <div className="rp-row">
-          <span>Lane 1</span>
-          <div className="rp-bar">
-            <i style={{ width: `${visual.hostProgress * 100}%` }} />
+        {match.participants.slice(0, 4).map((player, index) => (
+          <div className="rp-row" key={`${player.wallet}-${index}`}>
+            <span>{player.horse.name || `Lane ${index + 1}`}</span>
+            <div className="rp-bar">
+              <i style={{ width: `${(visual.runnerProgresses[index] ?? 0) * 100}%` }} />
+            </div>
           </div>
-        </div>
-        <div className="rp-row">
-          <span>Lane 2</span>
-          <div className="rp-bar">
-            <i style={{ width: `${visual.guestProgress * 100}%` }} />
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -244,50 +229,33 @@ export default function RaceVisualizer({
 
 /** Pre-race paddock preview with live stats from current builds */
 export function PaddockPreview({ match }: { match: PvpMatch }) {
-  const hostStats = getStats(match.host.horse);
-  const guestStats = match.guest ? getStats(match.guest.horse) : null;
-
   return (
     <div className="paddock">
-      <div className="paddock-lane">
-        <AnimatedHorse horse={match.host.horse} size="md" racing={false} />
-        <div>
-          <strong>{match.host.horse.name}</strong>
-          <p className="muted">
-            {match.host.horse.breedId} · {shortKey(match.host.wallet)}
-            {match.host.paid ? " · stake locked" : " · unpaid"}
-          </p>
-          <ul className="mini-stats">
-            <li>SPD {hostStats.speed}</li>
-            <li>STA {hostStats.stamina}</li>
-            <li>LCK {hostStats.luck}</li>
-            <li>GRT {hostStats.grit}</li>
-          </ul>
-        </div>
-      </div>
-      <div className="vs">VS</div>
-      <div className="paddock-lane">
-        {match.guest && guestStats ? (
-          <>
-            <AnimatedHorse horse={match.guest.horse} size="md" racing={false} />
+      {match.participants.slice(0, 4).map((participant, index) => {
+        const stats = getStats(participant.horse);
+        return (
+          <div className="paddock-lane" key={participant.wallet}>
+            <AnimatedHorse horse={participant.horse} size="md" racing={false} />
             <div>
-              <strong>{match.guest.horse.name}</strong>
+              <strong>{participant.horse.name}</strong>
               <p className="muted">
-                {match.guest.horse.breedId} · {shortKey(match.guest.wallet)}
-                {match.guest.paid ? " · stake locked" : " · unpaid"}
+                {participant.horse.breedId} · {shortKey(participant.wallet)}
+                {participant.paid ? " · stake locked" : " · unpaid"}
+                {index === 0 ? " · host" : ""}
               </p>
               <ul className="mini-stats">
-                <li>SPD {guestStats.speed}</li>
-                <li>STA {guestStats.stamina}</li>
-                <li>LCK {guestStats.luck}</li>
-                <li>GRT {guestStats.grit}</li>
+                <li>SPD {stats.speed}</li>
+                <li>STA {stats.stamina}</li>
+                <li>LCK {stats.luck}</li>
+                <li>GRT {stats.grit}</li>
               </ul>
             </div>
-          </>
-        ) : (
-          <p className="muted">Waiting for challenger to enter the arena…</p>
-        )}
-      </div>
+          </div>
+        );
+      })}
+      {match.participants.length < 2 && (
+        <p className="muted">Waiting for challengers to enter the arena…</p>
+      )}
     </div>
   );
 }

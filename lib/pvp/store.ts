@@ -23,6 +23,8 @@ export interface PvpMatch {
   stake: number;
   host: PvpPlayer;
   guest?: PvpPlayer;
+  participants: PvpPlayer[];
+  maxPlayers: number;
   status: MatchStatus;
   houseFeeBps: number;
   createdAt: number;
@@ -136,15 +138,19 @@ export function createMatchDraft(params: {
   if (!allowed.includes(params.stake)) {
     throw new Error("Invalid stake preset");
   }
+  const host: PvpPlayer = {
+    wallet: params.wallet,
+    horse: params.horse,
+    paid: false,
+    ready: true,
+  };
+
   return {
     id: newMatchId(),
     stake: params.stake,
-    host: {
-      wallet: params.wallet,
-      horse: params.horse,
-      paid: false,
-      ready: true,
-    },
+    host,
+    participants: [host],
+    maxPlayers: 4,
     status: "open",
     houseFeeBps: ECONOMY.houseFeeBps,
     createdAt: Date.now(),

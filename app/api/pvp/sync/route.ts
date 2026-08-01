@@ -28,26 +28,32 @@ export async function POST(req: Request) {
     );
   }
 
-  if (match.host.wallet === body.wallet) {
-    if (match.host.paid) {
-      return NextResponse.json(
-        { error: "Stake already paid — horse frozen" },
-        { status: 409 }
-      );
-    }
-    match.host.horse = body.horse;
-    match.host.ready = true;
-  } else if (match.guest?.wallet === body.wallet) {
-    if (match.guest.paid) {
-      return NextResponse.json(
-        { error: "Stake already paid — horse frozen" },
-        { status: 409 }
-      );
-    }
-    match.guest.horse = body.horse;
-    match.guest.ready = true;
-  } else {
+  const participant = match.participants.find((player) => player.wallet === body.wallet);
+  if (!participant) {
     return NextResponse.json({ error: "Not a player" }, { status: 403 });
+  }
+
+  if (participant.paid) {
+    return NextResponse.json(
+      { error: "Stake already paid — horse frozen" },
+      { status: 409 }
+    );
+  }
+
+  participant.horse = body.horse;
+  participant.ready = true;
+
+  if (match.host.wallet === body.wallet) {
+    match.host = participant;
+  } else if (match.guest?.wallet === body.wallet) {
+    match.guest = participant;
+  }
+
+  if (match.participants[0]) {
+    match.host = match.participants[0];
+  }
+  if (match.participants[1]) {
+    match.guest = match.participants[1];
   }
 
   await saveMatch(match);

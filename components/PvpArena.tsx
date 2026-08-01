@@ -34,6 +34,7 @@ export default function PvpArena({ horse }: Props) {
   const syncing = useRef(false);
 
   const wallet = publicKey?.toBase58();
+  const myParticipant = active?.participants.find((player) => player.wallet === wallet);
 
   const refreshLobby = useCallback(async () => {
     const res = await fetch("/api/pvp/lobby", { cache: "no-store" });
@@ -86,12 +87,10 @@ export default function PvpArena({ horse }: Props) {
   useEffect(() => {
     if (!wallet || !active) return;
     if (active.status !== "open" && active.status !== "full") return;
-    const isPlayer =
-      active.host.wallet === wallet || active.guest?.wallet === wallet;
+    const isPlayer = active.participants.some((player) => player.wallet === wallet);
     if (!isPlayer) return;
     const paid =
-      (active.host.wallet === wallet && active.host.paid) ||
-      (active.guest?.wallet === wallet && active.guest.paid);
+      active.participants.find((player) => player.wallet === wallet)?.paid ?? false;
     if (paid) return;
 
     const timer = window.setTimeout(() => {
@@ -171,7 +170,7 @@ export default function PvpArena({ horse }: Props) {
     const role =
       active.host.wallet === wallet
         ? "host"
-        : active.guest?.wallet === wallet
+        : active.participants.some((player) => player.wallet === wallet)
           ? "guest"
           : null;
     if (!role) return;
@@ -223,19 +222,17 @@ export default function PvpArena({ horse }: Props) {
       });
   }, [active?.id]);
 
-  const myPaid =
-    active &&
-    wallet &&
-    ((active.host.wallet === wallet && active.host.paid) ||
-      (active.guest?.wallet === wallet && active.guest.paid));
+  const myPaid = Boolean(active && wallet && myParticipant?.paid);
 
   const needOpponent = active?.status === "open";
   const canLock =
-    active &&
-    wallet &&
-    (active.status === "open" || active.status === "full") &&
-    (active.host.wallet === wallet || active.guest?.wallet === wallet) &&
-    !myPaid;
+    Boolean(
+      active &&
+        wallet &&
+        (active.status === "open" || active.status === "full") &&
+        active.participants.some((player) => player.wallet === wallet) &&
+        !myPaid
+    );
 
   const showVisualizer =
     active &&
@@ -250,8 +247,8 @@ export default function PvpArena({ horse }: Props) {
         <h2>Live PvP Arena</h2>
         <p>
           Enter the rail with your live build — breed, upgrades, and silks feed
-          the race sim. Horses run the track; {TOKEN.ticker} stakes settle on
-          finish.
+          the race sim. Horses run the track in a betting race with up to four
+          entrants; {TOKEN.ticker} stakes settle on finish.
         </p>
       </header>
 
@@ -367,7 +364,7 @@ export default function PvpArena({ horse }: Props) {
             <div className="pvp-actions">
               {needOpponent && (
                 <p className="muted">
-                  Arena open — waiting on a challenger. Customize in Your Stable;
+                  Arena open — waiting for more entrants. Customize in Your Stable;
                   builds sync live until you pay.
                 </p>
               )}
@@ -398,14 +395,14 @@ export default function PvpArena({ horse }: Props) {
                       ? shortKey(active.winnerWallet)
                       : "—"}
                     {active.race
-                      ? ` · ${active.race.winner === "host" ? active.host.horse.name : active.guest?.horse.name}`
+                      ? ` · ${active.race.winner === "host" ? active.host.horse.name : active.participants[active.race.winnerIndex]?.horse.name ?? "Runner"}`
                       : ""}
                   </p>
                   {active.race && (
                     <p className="muted">
                       Clock: host {(active.race.host.finishMs / 1000).toFixed(2)}
-                      s · guest{" "}
-                      {(active.race.guest.finishMs / 1000).toFixed(2)}s · seed{" "}
+                      s · winner{" "}
+                      {(active.race.runners[active.race.winnerIndex]?.finishMs / 1000).toFixed(2)}s · seed{" "}
                       {active.race.seed}
                     </p>
                   )}

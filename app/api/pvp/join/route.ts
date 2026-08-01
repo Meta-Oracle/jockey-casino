@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMatch, saveMatch } from "@/lib/pvp/store";
+import { getMatch, saveMatch, type PvpPlayer } from "@/lib/pvp/store";
 import type { HorseConfig } from "@/lib/game";
 import { economyReady } from "@/lib/token";
 
@@ -36,16 +36,21 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  if (match.guest) {
+  if (match.participants.length >= (match.maxPlayers ?? 4)) {
     return NextResponse.json({ error: "Match full" }, { status: 409 });
   }
+  if (match.participants.some((player) => player.wallet === body.wallet)) {
+    return NextResponse.json({ error: "Already joined" }, { status: 409 });
+  }
 
-  match.guest = {
+  const entrant: PvpPlayer = {
     wallet: body.wallet,
     horse: body.horse,
     paid: false,
   };
-  match.status = "full";
+  match.participants.push(entrant);
+  match.guest = entrant;
+  match.status = match.participants.length >= 2 ? "full" : "open";
   await saveMatch(match);
 
   return NextResponse.json({ match });

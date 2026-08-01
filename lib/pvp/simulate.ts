@@ -33,9 +33,11 @@ export interface RacePlan {
   durationMs: number;
   steps: number;
   countdownMs: number;
+  runners: RunnerPlan[];
   host: RunnerPlan;
-  guest: RunnerPlan;
-  winner: "host" | "guest";
+  guest?: RunnerPlan;
+  winnerIndex: number;
+  winner: "host" | "guest" | "multi";
 }
 
 const DEFAULT_DURATION = 12_000;
@@ -56,75 +58,66 @@ export function simulateRace(
   seed: number,
   startedAt = Date.now()
 ): RacePlan {
+  return simulateMultiRace([hostHorse, guestHorse], seed, startedAt);
+}
+
+export function simulateMultiRace(
+  horses: HorseConfig[],
+  seed: number,
+  startedAt = Date.now()
+): RacePlan {
   const durationMs = DEFAULT_DURATION;
   const steps = DEFAULT_STEPS;
   const dt = durationMs / steps;
-  const rng = mulberry32(seed);
 
-  const hostStats = getStats(hostHorse);
-  const guestStats = getStats(guestHorse);
+  const runners = horses.map((horse, index) => {
+    const stats = getStats(horse);
+    const rng = mulberry32(seed ^ (0x9e3779b9 + index * 0x85ebca6b));
+    let progress = 0;
+    const samples: number[] = [];
+    let finishMs = durationMs;
+    let done = false;
 
-  let hostP = 0;
-  let guestP = 0;
-  const hostSamples: number[] = [];
-  const guestSamples: number[] = [];
-  let hostFinish = durationMs;
-  let guestFinish = durationMs;
-  let hostDone = false;
-  let guestDone = false;
-
-  // Warm RNG differently per lane so luck isn't identical
-  const hostRng = mulberry32(seed ^ 0xa5a5a5a5);
-  const guestRng = mulberry32(seed ^ 0x5a5a5a5a);
-  void rng();
-
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps; // 0..1 race fraction
-    const elapsed = i * dt;
-
-    if (!hostDone) {
-      hostP = stepProgress(hostP, guestP, hostStats, t, hostRng, dt);
-      if (hostP >= 1) {
-        hostP = 1;
-        hostDone = true;
-        hostFinish = elapsed;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const elapsed = i * dt;
+      if (!done) {
+        const rivalProgress = i === 0 ? 0 : samples[i - 1] ?? 0;
+        progress = stepProgress(progress, rivalProgress, stats, t, rng, dt);
+        if (progress >= 1) {
+          progress = 1;
+          done = true;
+          finishMs = elapsed;
+        }
       }
-    }
-    if (!guestDone) {
-      guestP = stepProgress(guestP, hostP, guestStats, t, guestRng, dt);
-      if (guestP >= 1) {
-        guestP = 1;
-        guestDone = true;
-        guestFinish = elapsed;
-      }
+      samples.push(progress);
     }
 
-    hostSamples.push(hostP);
-    guestSamples.push(guestP);
-  }
+    return {
+      samples,
+      finishMs,
+      stats,
+    } satisfies RunnerPlan;
+  });
 
-  // Ensure someone finishes — stretch leader if both stalled
-  if (!hostDone && !guestDone) {
-    if (hostP >= guestP) {
-      hostSamples[hostSamples.length - 1] = 1;
-      hostFinish = durationMs;
-      hostDone = true;
-    } else {
-      guestSamples[guestSamples.length - 1] = 1;
-      guestFinish = durationMs;
-      guestDone = true;
+  const winnerIndex = runners.reduce((bestIndex, runner, index, all) => {
+    if (runner.finishMs < all[bestIndex].finishMs) return index;
+    if (runner.finishMs === all[bestIndex].finishMs) {
+      const currentLast = runner.samples.at(-1) ?? 0;
+      const bestLast = all[bestIndex].samples.at(-1) ?? 0;
+      return currentLast > bestLast ? index : bestIndex;
     }
-  }
+    return bestIndex;
+  }, 0);
 
-  const winner: "host" | "guest" =
-    hostFinish === guestFinish
-      ? hostSamples[hostSamples.length - 1] >=
-        guestSamples[guestSamples.length - 1]
-        ? "host"
-        : "guest"
-      : hostFinish < guestFinish
-        ? "host"
-        : "guest";
+  const host = runners[0] ?? {
+    samples: [],
+    finishMs: durationMs,
+    stats: { speed: 0, stamina: 0, luck: 0, grit: 0 },
+  };
+  const guest = runners[1];
+  const winner: RacePlan["winner"] =
+    winnerIndex === 0 ? "host" : winnerIndex === 1 ? "guest" : "multi";
 
   return {
     seed,
@@ -132,8 +125,10 @@ export function simulateRace(
     durationMs,
     steps,
     countdownMs: COUNTDOWN_MS,
-    host: { samples: hostSamples, finishMs: hostFinish, stats: hostStats },
-    guest: { samples: guestSamples, finishMs: guestFinish, stats: guestStats },
+    runners,
+    host,
+    guest,
+    winnerIndex,
     winner,
   };
 }
@@ -202,6 +197,7 @@ export function raceVisualElapsed(plan: RacePlan, now = Date.now()): {
   raceElapsed: number;
   hostProgress: number;
   guestProgress: number;
+  runnerProgresses: number[];
 } {
   const sinceStart = now - plan.startedAt;
   if (sinceStart < plan.countdownMs) {
@@ -211,25 +207,19 @@ export function raceVisualElapsed(plan: RacePlan, now = Date.now()): {
       raceElapsed: 0,
       hostProgress: 0,
       guestProgress: 0,
+      runnerProgresses: plan.runners.map(() => 0),
     };
   }
 
   const raceElapsed = sinceStart - plan.countdownMs;
-  const hostProgress = progressAt(
-    plan.host,
-    plan.durationMs,
-    plan.steps,
-    raceElapsed
+  const runnerProgresses = plan.runners.map((runner) =>
+    progressAt(runner, plan.durationMs, plan.steps, raceElapsed)
   );
-  const guestProgress = progressAt(
-    plan.guest,
-    plan.durationMs,
-    plan.steps,
-    raceElapsed
-  );
+  const hostProgress = runnerProgresses[0] ?? 0;
+  const guestProgress = runnerProgresses[1] ?? 0;
 
   const finished =
-    raceElapsed >= Math.max(plan.host.finishMs, plan.guest.finishMs) + 400;
+    raceElapsed >= Math.max(...plan.runners.map((runner) => runner.finishMs)) + 400;
 
   return {
     phase: finished ? "finished" : "running",
@@ -237,13 +227,10 @@ export function raceVisualElapsed(plan: RacePlan, now = Date.now()): {
     raceElapsed,
     hostProgress,
     guestProgress,
+    runnerProgresses,
   };
 }
 
 export function totalRaceWallMs(plan: RacePlan): number {
-  return (
-    plan.countdownMs +
-    Math.max(plan.host.finishMs, plan.guest.finishMs) +
-    800
-  );
+  return plan.countdownMs + Math.max(...plan.runners.map((runner) => runner.finishMs)) + 800;
 }
