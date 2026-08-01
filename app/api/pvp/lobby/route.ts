@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createMatchDraft, saveMatch, listOpenMatches } from "@/lib/pvp/store";
 import type { HorseConfig } from "@/lib/game";
-import { economyReady } from "@/lib/token";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +13,6 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  if (!economyReady()) {
-    return NextResponse.json(
-      { error: "Set NEXT_PUBLIC_TREASURY_WALLET to enable live PvP" },
-      { status: 503 }
-    );
-  }
-
   const body = (await req.json()) as {
     wallet?: string;
     horse?: HorseConfig;

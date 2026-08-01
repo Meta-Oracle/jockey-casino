@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
 import { getMatch, saveMatch, type PvpPlayer } from "@/lib/pvp/store";
 import type { HorseConfig } from "@/lib/game";
-import { economyReady } from "@/lib/token";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  if (!economyReady()) {
-    return NextResponse.json(
-      { error: "Treasury not configured" },
-      { status: 503 }
-    );
-  }
-
   const body = (await req.json()) as {
     matchId?: string;
     wallet?: string;
