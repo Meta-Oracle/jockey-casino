@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+const projectRoot = path.resolve(process.cwd());
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  outputFileTracingRoot: path.join(__dirname),
+  outputFileTracingRoot: projectRoot,
   turbopack: {
-    root: __dirname,
+    root: projectRoot,
   },
   transpilePackages: [
     "@solana/wallet-adapter-base",

@@ -14,7 +14,7 @@ export async function maybeSettleMatch(
   ) {
     return match;
   }
-  if (match.status !== "racing" || !match.race || !match.guest) {
+  if (match.status !== "racing" || !match.race || match.participants.length < 2) {
     return match;
   }
 
@@ -32,13 +32,13 @@ export async function maybeSettleMatch(
   if (latest.status === "settled") return latest;
   if (latest.status !== "settling") return latest;
 
-  const winnerRole = latest.race!.winner;
-  const winnerWallet =
-    winnerRole === "host" ? latest.host.wallet : latest.guest!.wallet;
+  const winnerIndex = latest.race!.winnerIndex;
+  const winnerParticipant = latest.participants[winnerIndex] ?? latest.participants[0];
+  const winnerWallet = winnerParticipant.wallet;
 
   latest.winnerWallet = winnerWallet;
   latest.hostScore = latest.race!.host.finishMs;
-  latest.guestScore = latest.race!.guest.finishMs;
+  latest.guestScore = latest.race!.runners[1]?.finishMs ?? latest.race!.guest?.finishMs;
 
   const payout = winnerPayout(latest.stake);
   const pay = await payoutWinner({

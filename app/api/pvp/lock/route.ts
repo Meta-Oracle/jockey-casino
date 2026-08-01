@@ -71,7 +71,7 @@ export async function POST(req: Request) {
   match.status = "racing";
   match.winnerWallet = match.participants[race.winnerIndex]?.wallet;
   match.hostScore = race.host.finishMs;
-  match.guestScore = race.guest?.finishMs ?? race.runners[1]?.finishMs;
+  match.guestScore = race.runners[1]?.finishMs ?? race.guest?.finishMs;
   await saveMatch(match);
 
   return NextResponse.json({ match });
